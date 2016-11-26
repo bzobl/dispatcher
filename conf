@@ -1,0 +1,12 @@
+[mlp]
+Path=/home/bernd/Desktop/test/apps/mylittleprogram
+Root=true
+
+[setuid]
+Path=/home/bernd/Desktop/test/apps/setuid
+Root=false
+
+[test.sh]
+Path=/home/bernd/Desktop/test/apps/test.sh
+Root=true
+
