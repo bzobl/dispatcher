@@ -1,0 +1,13 @@
+_*
+
+# autoconf generated
+autom4te.cache
+configure
+COPYING
+INSTALL
+Makefile.in
+aclocal.m4
+compile
+depcomp
+install-sh
+missing
