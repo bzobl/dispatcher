@@ -8,3 +8,5 @@ dispatcher_SOURCES =  src/command.cpp		\
 		      src/dispatcher.cpp	\
                       src/main.cpp		\
 		      ${NULL}
+
+EXTRA_DIST = examples/conf
