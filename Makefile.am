@@ -9,4 +9,8 @@ dispatcher_SOURCES =  src/command.cpp		\
                       src/main.cpp		\
 		      ${NULL}
 
+raise-privs: dispatcher$(EXEEXT)
+	-chown root $<
+	-chmod g+s $<
+
 EXTRA_DIST = examples/conf

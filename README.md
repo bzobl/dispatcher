@@ -10,4 +10,5 @@ To build run
 mkdir _build && cd _build
 ../configure
 make
+sudo make raise-privs
 ```
