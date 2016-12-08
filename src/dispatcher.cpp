@@ -2,12 +2,13 @@
 
 #include <iostream>
 #include <algorithm>
-#include <glib.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <spawn.h>
 #include <unistd.h>
+
+extern char **environ;
 
 Dispatcher::Dispatcher()
 {
@@ -17,13 +18,10 @@ Dispatcher::~Dispatcher()
 {
 }
 
-bool Dispatcher::load_config(std::string path)
+bool Dispatcher::load_config(std::string path, GError **error)
 {
   GKeyFile *file = g_key_file_new();
-  GError *error = NULL;
-  if (!g_key_file_load_from_file(file, path.c_str(), G_KEY_FILE_NONE, &error)) {
-    std::cout << "could not read file " << path << " :" << error->message << std::endl;
-    g_error_free(error);
+  if (!g_key_file_load_from_file(file, path.c_str(), G_KEY_FILE_NONE, error)) {
     return false;
   }
 
@@ -34,7 +32,8 @@ bool Dispatcher::load_config(std::string path)
     std::string group(groups[i]);
     char *path = g_key_file_get_value(file, group.c_str(), Command::PATH_STRING.c_str(), NULL);
     if (path == NULL) {
-      std::cout << "Missing required key <" << Command::PATH_STRING << ">" << std::endl;
+      *error = g_error_new(DISPATCHER_ERROR, CONFIG_MISSING_KEY,
+                           "missing required key %s", Command::PATH_STRING.c_str());
       return false;
     }
 
@@ -49,32 +48,31 @@ bool Dispatcher::load_config(std::string path)
   }
 
   g_strfreev(groups);
+  return true;
 }
 
-extern char **environ;
-
-bool Dispatcher::launch(std::string name)
+bool Dispatcher::launch(std::string command, GError **error)
 {
-  auto it = std::find(mCommands.begin(), mCommands.end(), name);
-
-  if (it != mCommands.end()) {
-    Command &cmd = (*it);
-
-    pid_t pid;
-    char *path = (char *)cmd.get_path();
-    char *args[] = { path, NULL };
-
-    int spawn_flags = cmd.drop_privileges() ? POSIX_SPAWN_RESETIDS : 0;
-
-    posix_spawnattr_t attrs;
-    posix_spawnattr_setflags(&attrs, spawn_flags);
-
-    posix_spawn(&pid, path, NULL, &attrs, args, environ);
-
-    int wstatus;
-    waitpid(pid, &wstatus, 0);
-    return true;
+  auto it = std::find(mCommands.begin(), mCommands.end(), command);
+  if (it == mCommands.end()) {
+    *error = g_error_new_literal(DISPATCHER_ERROR, LAUNCH_COMMAND_NOT_FOUND, "command not found");
+    return false;
   }
 
-  return false;
+  Command &cmd = (*it);
+
+  pid_t pid;
+  char *path = (char *)cmd.get_path();
+  char *args[] = { path, NULL };
+
+  int spawn_flags = cmd.drop_privileges() ? POSIX_SPAWN_RESETIDS : 0;
+
+  posix_spawnattr_t attrs;
+  posix_spawnattr_setflags(&attrs, spawn_flags);
+
+  posix_spawn(&pid, path, NULL, &attrs, args, environ);
+
+  int wstatus;
+  waitpid(pid, &wstatus, 0);
+  return true;
 }
